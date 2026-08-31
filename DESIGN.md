@@ -1,6 +1,12 @@
 # Agentengine 设计
 
-Agentengine 是编码 Agent 的引擎。它拥有完整认知循环、交付工作流、任务台账、澄清与审批，不拥有编码工具或界面。
+Agentengine 是编码 Agent 的引擎，构建在 [Agentcore](https://github.com/momo-mnsjtxy/agentcore) 之上：Agentcore 提供干净认知循环、工具闭环、审批、澄清、会话检查点、上下文压缩和模型连接；Agentengine 在此基础上叠加交付工作流、任务台账和产出元工具。它不拥有编码工具或界面。
+
+## 与 Agentcore 的边界
+
+- Agentcore 拥有：认知循环、工具闭环、审批、澄清、重复失败暂停、会话快照与恢复、上下文压缩、图像观察、Responses/Chat 协议。它不读 `AGENTS.md`，不假设工作区或产品身份。
+- Agentengine 拥有：交付工作流（goal → inspect → plan → implement → verify → review → release 状态机与门禁）、有界任务台账、产出元工具（`update_plan` / `update_workflow` / `review`）和会话存储。
+- `model` / `openai` 是 Agentcore 的类型别名，import 路径不变，下游代码无需改动。
 
 ## 主链
 
@@ -23,8 +29,8 @@ Agentengine 是编码 Agent 的引擎。它拥有完整认知循环、交付工�
 - `agent/workflow.go` 拥有整条交付流水线：阶段顺序、前进条件、工具门禁、通过标记，以及喂给系统提示的规则文本。想知道「进入某阶段要满足什么」，只读这一个文件。`agent.go` 只问两件事：这次调用能不能做、这个结果是否翻转门禁。
 - 阶段只能由 `update_workflow` 移动。工具调用不会顺带推进阶段，界面上看到的阶段就是模型明确声明过的阶段。
 - `agent` 自己声明并执行 `update_plan`、`update_workflow`、`review`、`request_clarification`；调用方的 `Toolbox` 不应重复注册这些流程控制工具。一个元工具在 `agent/meta.go` 里是一条记录，模型看到的合约和引擎侧的处理写在一起。
-- `openai` 只负责模型网络协议。Responses 是默认路径，Chat Completions 是兼容回退；连接错误与限流在首个输出事件前有限重试。
-- `model` 保存这些模块之间最少的共享消息、图片和事件结构。
+- `openai` 是 Agentcore 的类型别名，只负责模型网络协议。Responses 是默认路径，Chat Completions 是兼容回退；连接错误与限流在首个输出事件前有限重试。
+- `model` 是 Agentcore 的类型别名，保存模块之间最少的共享消息、图片和事件结构。
 - `session` 原子保存已提交检查点，支持列表与恢复。不写 API key、环境变量或审批许可。
 - 应用实现 `agent.Toolbox`（5 个必需方法），决定能做什么、什么要审批。另外可选实现 `WorkspaceDiffer`、`WorkspaceUndoer`、`FileMutator`，实现了就多一项能力。
 
