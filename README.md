@@ -31,6 +31,30 @@ brain.Run(ctx, goal, events, approvals)
 
 `toolbox` 实现 `agent.Toolbox`（5 个必需方法），`systemPrompt` 由应用组装（可叠加 `agent.DefaultSystem()`）。会话文件默认写在 `$XDG_STATE_HOME/agentengine/sessions`。
 
+## 镜流视频执行器
+
+视频领域模型配置位于 `video` 包，兼容 OpenAI 风格的 endpoint。API key 只从环境变量读取，不会写入 session 或日志：
+
+```bash
+export JINGLIU_BASE_URL='https://ai.onyxaxis.org/v1'
+export JINGLIU_API_KEY='替换为你的 key'
+export JINGLIU_MODEL='claude-opus-5'
+export JINGLIU_PROTOCOL='responses'
+export JINGLIU_REASONING='medium'
+```
+
+应用可以这样创建模型客户端：
+
+```go
+cfg, err := video.ModelConfigFromEnv()
+if err != nil {
+    return err
+}
+provider := openai.New(cfg.BaseURL, cfg.APIKey, cfg.Model, cfg.Protocol, cfg.Reasoning)
+```
+
+`video.Executor` 负责镜头级生成、失败重试、合成和质检；具体模型和媒体服务通过 `video.Provider` 接入。
+
 Toolbox 另外可以实现三个可选接口，实现了就多一项能力，不实现引擎照常工作：
 
 | 接口 | 多出来的能力 |
@@ -53,3 +77,9 @@ session/store.go     原子会话检查点、列表与恢复
 ```
 
 `agentcore` 提供认知循环、工具闭环、审批、澄清、会话快照与恢复、上下文压缩和模型连接。架构边界见 [DESIGN.md](DESIGN.md)。代码遵循 [HOP](https://github.com/kernel4632/HOP)。
+
+## 许可证
+
+Copyright (c) 2026 agentengine contributors。
+
+本项目采用 [GNU Affero General Public License v3.0](LICENSE)（AGPL-3.0-only）。
